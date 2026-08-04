@@ -23,4 +23,11 @@ def pearsonr_table(r1, r2, p1, p2):
         "p-value": [fmt_p(p1), fmt_p(p2)],
     })
 
-    return metrics_df.style.hide(axis="index")
+    styler = metrics_df.style.hide(axis="index").set_properties(**
+    {
+    "padding": "6px",
+    "border": "1px solid black"
+        })
+
+
+    return styler

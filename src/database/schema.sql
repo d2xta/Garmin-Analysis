@@ -88,42 +88,22 @@
         );
 
         ------------------------------------------------------------
-        -- FitnessTrends: one row per day
+        -- Activities: one row per activity
         ------------------------------------------------------------
-        CREATE TABLE IF NOT EXISTS FitnessTrends(
-            calendarDate TEXT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS Activities (
 
-            vo2MaxValue               REAL,
-            maxMet                    REAL,
-
-            raceTime5K                REAL,
-            raceTime10K               REAL,
-            raceTimeHalf              REAL,
-            raceTimeMarathon          REAL,
-
-            weeklyTrainingLoadSum     REAL,
-
-            trainingStatus            TEXT,
-            fitnessLevelTrend         TEXT,
-
-            FOREIGN KEY(calendarDate) REFERENCES DailySummary(calendarDate)
-        );
-
-        ------------------------------------------------------------
-        -- ActivitySummary: one row per activity
-        ------------------------------------------------------------
-        CREATE TABLE IF NOT EXISTS ActivitySummary (
             activity_id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-            startTimeGmt INTEGER UNIQUE NOT NULL,
+            -- Core identifiers
             calendarDate TEXT NOT NULL,
-            start_time TEXT,
+            activityStartTimestampGMT TEXT UNIQUE NOT NULL,
+            activityName TEXT,
 
-            activity_type TEXT,
-
-            durationSeconds INTEGER,
+            -- Basic session metrics
+            durationSeconds REAL,
             distanceMeters REAL,
 
+            -- Heart-rate metrics
             ratio_time_max_hr REAL,
             ratio_time_avg_hr REAL,
             hr_volatility REAL,
@@ -136,6 +116,7 @@
             hr_pace_coupling REAL,
             start_hr_offset REAL,
 
+            -- Cadence metrics
             cadence_std REAL,
             cadence_cv REAL,
             cadence_drift REAL,
@@ -146,8 +127,9 @@
             steps_per_meter REAL,
             running_start_cadence REAL,
 
-            avg_speed REAL,
-            max_speed REAL,
+            -- Speed metrics
+            avgSpeed REAL,
+            maxSpeed REAL,
             speed_std REAL,
             speed_cv REAL,
             speed_drift REAL,
@@ -158,6 +140,7 @@
             speed_cadence_coupling REAL,
             running_start_speed REAL,
 
+            -- Stride metrics
             stride_std REAL,
             stride_cv REAL,
             stride_drift REAL,
@@ -168,31 +151,40 @@
             stride_hr_coupling REAL,
             running_start_stride REAL,
 
+            -- Garmin summary metrics
+            elevationGain REAL,
             avgHr REAL,
             maxHr REAL,
+            minHr REAL,
             avgRunCadence REAL,
             maxRunCadence REAL,
             avgStrideLength REAL,
             steps REAL,
 
+            -- Training effect
             activityTrainingLoad REAL,
             aerobicTrainingEffect REAL,
             anaerobicTrainingEffect REAL,
             trainingEffectLabel TEXT,
-
             vigorousIntensityMinutes REAL,
             moderateIntensityMinutes REAL,
 
+            -- Temperature
             maxTemperature REAL,
             minTemperature REAL,
 
-            FOREIGN KEY(calendarDate) REFERENCES DailySummary(calendarDate)
+            -- Training effect messages
+            anaerobicTrainingEffectMessage TEXT,
+            aerobicTrainingEffectMessage TEXT,
+
+            -- HR zones
+            hrTimeInZone_0 REAL,
+            hrTimeInZone_1 REAL,
+            hrTimeInZone_2 REAL,
+            hrTimeInZone_3 REAL,
+            hrTimeInZone_4 REAL,
+            hrTimeInZone_5 REAL,
+            hrTimeInZone_6 REAL
         );
 
-        ------------------------------------------------------------
-        -- Indexes for fast analytics
-        ------------------------------------------------------------
-        CREATE INDEX IF NOT EXISTS idx_activity_date ON ActivitySummary(calendarDate);
-        CREATE INDEX IF NOT EXISTS idx_activity_type ON ActivitySummary(activity_type);
-        CREATE INDEX IF NOT EXISTS idx_activity_start ON ActivitySummary(startTimeGmt);
 

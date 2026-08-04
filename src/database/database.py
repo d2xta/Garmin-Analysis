@@ -1,6 +1,5 @@
 
 import sqlite3
-import pandas as pd
 
 
 def get_connection(db_path):
@@ -17,47 +16,64 @@ def initialise_database(con, schema_path="schema.sql"):
     
     with con:
         con.executescript(schema_script)
-    print("Database schema initialized successfully.")
+    print("Database schema initialised successfully.")
 
-
-# Inserting !
 
 def insert_activities(con, activities):
-    columns = [
-        "startTimeGmt", "calendarDate", "start_time", "activity_type",
-        "durationSeconds", "distanceMeters", "ratio_time_max_hr", "ratio_time_avg_hr", 
-        "hr_volatility", "hr_derivative", "hr_smoothness", "hr_oscillation", "hr_drift",
-        "meters_per_beat", "plateau_seconds", "hr_pace_coupling", "start_hr_offset",
-        "cadence_std", "cadence_cv", "cadence_drift", "cadence_derivative",
-        "cadence_smoothness", "cadence_speed_coupling", "cadence_hr_coupling",
-        "steps_per_meter", "running_start_cadence", "avg_speed", "max_speed", 
-        "speed_std", "speed_cv", "speed_drift", "speed_derivative", "speed_smoothness", 
-        "speed_oscillation", "speed_hr_coupling", "speed_cadence_coupling", "running_start_speed",
-        "stride_std", "stride_cv", "stride_drift", "stride_derivative", "stride_smoothness", 
-        "stride_oscillation", "stride_speed_coupling", "stride_hr_coupling", "running_start_stride",
-        "avgHr", "maxHr", "avgRunCadence", "maxRunCadence", "avgStrideLength", "steps",
-        "activityTrainingLoad", "aerobicTrainingEffect", "anaerobicTrainingEffect", 
-        "trainingEffectLabel", "vigorousIntensityMinutes", "moderateIntensityMinutes",
-        "maxTemperature", "minTemperature"
-    ]
 
-    placeholders = ", ".join(["?"] * len(columns))
-    colnames = ", ".join(columns)
-    sql = f"INSERT INTO ActivitySummary ({colnames}) VALUES ({placeholders})"
+    query = """
+    INSERT OR REPLACE INTO Activities (
+        calendarDate, activityStartTimestampGMT, activityName,
+        durationSeconds, distanceMeters, 
+        ratio_time_max_hr, ratio_time_avg_hr, hr_volatility, hr_derivative, 
+        hr_smoothness, hr_oscillation, hr_drift, meters_per_beat, plateau_seconds, hr_pace_coupling, start_hr_offset, 
 
-    rows = []
-    for act in activities:
-        row = []
-        for col in columns:
-            val = act.get(col)
-            if isinstance(val, pd.Timestamp):
-                val = val.isoformat()
-            row.append(val)
-        rows.append(tuple(row))
+        cadence_std, cadence_cv, cadence_drift, cadence_derivative, cadence_smoothness, cadence_speed_coupling, 
+        cadence_hr_coupling, steps_per_meter, running_start_cadence, 
+        
+        avgSpeed, maxSpeed, speed_std, speed_cv, speed_drift, speed_derivative, speed_smoothness, speed_oscillation, 
+        speed_hr_coupling, speed_cadence_coupling, running_start_speed, 
+        
+        stride_std, stride_cv, stride_drift, stride_derivative, stride_smoothness, stride_oscillation, 
+        stride_speed_coupling, stride_hr_coupling, running_start_stride, 
+        
+        elevationGain, avgHr, maxHr, minHr, avgRunCadence, maxRunCadence, avgStrideLength, steps,
+        activityTrainingLoad, aerobicTrainingEffect, anaerobicTrainingEffect, trainingEffectLabel,vigorousIntensityMinutes, 
+        moderateIntensityMinutes, 
+        maxTemperature, minTemperature, 
+        anaerobicTrainingEffectMessage, aerobicTrainingEffectMessage, 
+        hrTimeInZone_0, hrTimeInZone_1, hrTimeInZone_2, hrTimeInZone_3, hrTimeInZone_4, 
+        hrTimeInZone_5, hrTimeInZone_6
 
+    )
+
+    VALUES (
+        :calendarDate, :activityStartTimestampGMT, :activityName,
+        :durationSeconds, :distanceMeters, 
+        :ratio_time_max_hr, :ratio_time_avg_hr, :hr_volatility, :hr_derivative, 
+        :hr_smoothness, :hr_oscillation, :hr_drift, :meters_per_beat, :plateau_seconds, :hr_pace_coupling, :start_hr_offset, 
+
+        :cadence_std, :cadence_cv, :cadence_drift, :cadence_derivative, :cadence_smoothness, :cadence_speed_coupling, 
+        :cadence_hr_coupling, :steps_per_meter, :running_start_cadence, 
+        
+        :avgSpeed, :maxSpeed, :speed_std, :speed_cv, :speed_drift, :speed_derivative, :speed_smoothness, :speed_oscillation, 
+        :speed_hr_coupling, :speed_cadence_coupling, :running_start_speed, 
+        
+        :stride_std, :stride_cv, :stride_drift, :stride_derivative, :stride_smoothness, :stride_oscillation,
+        :stride_speed_coupling, :stride_hr_coupling, :running_start_stride, 
+        
+        :elevationGain, :avgHr,:maxHr, :minHr, :avgRunCadence, :maxRunCadence, :avgStrideLength, :steps,
+        :activityTrainingLoad, :aerobicTrainingEffect, :anaerobicTrainingEffect, :trainingEffectLabel, :vigorousIntensityMinutes,
+        :moderateIntensityMinutes, 
+        :maxTemperature, :minTemperature,
+        :anaerobicTrainingEffectMessage, :aerobicTrainingEffectMessage, 
+        :hrTimeInZone_0, :hrTimeInZone_1,:hrTimeInZone_2, :hrTimeInZone_3, :hrTimeInZone_4, :hrTimeInZone_5, :hrTimeInZone_6
+    )
+    """
     with con:
-        con.executemany(sql, rows)
-    print(f"Inserted {len(rows)} activities into ActivitySummary.")
+        con.executemany(query, activities)
+    print(f"Inserted {len(activities)} activity records.")
+
 
 
 def insert_daily_summary(con, df):
@@ -126,27 +142,6 @@ def insert_daily_summary(con, df):
 
     print(f"Inserted {len(rows)} daily summary rows.")
 
-
-
-def insert_fitness_trends(con, fitness_rows):
-    columns = [
-        "calendarDate", "vo2MaxValue", "maxMet", "raceTime5K", "raceTime10K", 
-        "raceTimeHalf", "raceTimeMarathon", "weeklyTrainingLoadSum", 
-        "trainingStatus", "fitnessLevelTrend"
-    ]
-
-    placeholders = ", ".join(["?"] * len(columns))
-    colnames = ", ".join(columns)
-    sql = f"INSERT OR REPLACE INTO FitnessTrends ({colnames}) VALUES ({placeholders})"
-
-    rows = []
-    for ft in fitness_rows:
-        row = [ft.get(col) for col in columns]
-        rows.append(tuple(row))
-
-    with con:
-        con.executemany(sql, rows)
-    print(f"Inserted {len(rows)} fitness trend rows.")
 
 
 def insert_sleep(con, df):

@@ -1,54 +1,66 @@
-from src.database.database import *
-from src.loading import get_all_activities, merge_json_files, load_fitness_trends
 from pathlib import Path
+import pandas as pd
+import json
 
+from src.database.database import *
 from src.cleaning.sleep_cleaning import clean_sleep
 from src.cleaning.daily_cleaning import clean_UDS
+from src.cleaning.activity_cleaning import clean_activity_summary, combine_activities
 
-con = get_connection(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\garmin.db')
+con = get_connection(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\garmin.db')
 
 initialise_database(con, schema_path=r'C:\Users\Dexta\Learning\Garmin-Analysis\src\database\schema.sql')
 
-#--------------------------#
-# For inserting activities !
+#-----------------------------------------------------------------------------------------------------------
+# For inserting activities 
 
-# folder = r'C:\Users\Dexta\Learning\Garmin-Analysis\inital_import\DI_CONNECT\DI-Connect-Uploaded-Files\useful'
-# activity_summary = r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\ActivityStatsSummary.json'
-# activities = get_all_activities(folder,activity_summary)
-# insert_activities(con,activities)
+activities_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\Activity_FITS')
 
-#------------------------------------------#
-# For inserting daiy stats
+summary_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Fitness')
+summary_files = list(summary_folder.glob("*Activities.json"))
 
-# aggregator_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Aggregator')
-# UDS_files = list(aggregator_folder.glob("UDS*"))
+clean_summary_df = clean_activity_summary(summary_files)
 
-# merged_UDS_df = merge_json_files(UDS_files)
-# clean_UDS_df = clean_UDS(merged_UDS_df)
-
-# insert_daily_summary(con, clean_UDS_df)
-
-#------------------------------------------#
-# For inserting fitness trends
-metrics_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Metrics')
-maxMet_files = list(metrics_folder.glob("MetricsMaxMet*"))
-racePrediction_files = list(metrics_folder.glob("RunRacePredictions*"))
-trainingHistory_files = list(metrics_folder.glob("TrainingHistory*"))
-
+activities = combine_activities(list(activities_folder.glob("*.fit")), clean_summary_df)
+insert_activities(con,activities)
 
 #-----------------------------------------------------------------------------------------------------------
-# For inserting sleep files !
+# For inserting daiy stats
 
-# # raw sleep files are stored in the wellness folder
-# wellness_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Wellness')
-# sleep_files = list(wellness_folder.glob("*sleepData.json"))
+aggregator_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Aggregator')
+UDS_files = list(aggregator_folder.glob("UDS*"))
 
-# # a list of the merged sleep files
-# merged_sleep_df = merge_json_files(sleep_files)
+records = []
 
-# # data cleaning to flatten jsons and only keep features we care for
-# clean_sleep_df = clean_sleep(merged_sleep_df)
+for file in UDS_files:
+    with open(file, "r") as f:
+        data = json.load(f)
+        if isinstance(data, list):
+            records.extend(data)
 
-# insert_sleep(con, clean_sleep_df)
+merged_UDS_df = pd.json_normalize(records)
+clean_UDS_df = clean_UDS(merged_UDS_df)
+
+insert_daily_summary(con, clean_UDS_df)
+
+#-----------------------------------------------------------------------------------------------------------
+# For inserting sleep files 
+
+# raw sleep files are stored in the wellness folder
+wellness_folder = Path(r'C:\Users\Dexta\Learning\Garmin-Analysis\data\raw\DI-Connect-Wellness')
+sleep_files = list(wellness_folder.glob("*sleepData.json"))
+
+records = []
+
+for file in sleep_files:
+    with open(file, "r") as f:
+        data = json.load(f)
+        if isinstance(data, list):
+            records.extend(data)
+
+merged_sleep_df = pd.json_normalize(records)
+clean_sleep_df = clean_sleep(merged_sleep_df)
+
+insert_sleep(con, clean_sleep_df)
 
 con.close()
